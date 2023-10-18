@@ -25,9 +25,11 @@
 #endif
 
 
-#define GAME_ID		"32f808af-ca74-468d-8e6c-ef9f73b9b86a"
-#define PLAYER_ID1	"player1-xxx"
-#define PLAYER_ID2	"player2-xxx"
+#define GAME_ID		"3f22d49d-4897-42a1-a42c-af317cf1ccf9"
+//string join_id = "player-2-xxx";
+std::string player_id_str = "player";
+// player id = 0 or 1
+int player_id = 0;
 
 using namespace sio;
 using namespace std;
@@ -76,6 +78,14 @@ public:
 
 };
 
+bool isSafe(const std::vector<std::vector<int>>& map, int row, int col) {
+	return map[row][col] == ROAD || 
+		map[row][col] == SPEED_EGG ||
+		map[row][col] == ATTACK_EGG ||
+		map[row][col] == DELAY_EGG ||
+		map[row][col] <= -500;
+}
+
 void join_room(std::string& game_id, std::string& player_id)
 {
 	std::string socket_event = "join game";
@@ -102,74 +112,43 @@ void bind_events()
 	current_socket->on("ticktack player", sio::socket::event_listener_aux([&](string const& name, message::ptr const& data, bool isAck, message::list& ack_resp)
 		{
 			_lock.lock();
-			EM("ticktack");
 
+			// Init
+			Game* elBombGame = Game::getInstance();
 			std::map<std::string, message::ptr> map_info = data->get_map()["map_info"]->get_map();
-
 			//int64_t map_size_rows = map_info["size"]->get_map()["rows"]->get_int();
 			//int64_t map_size_cols = map_info["size"]->get_map()["cols"]->get_int();
+			
+			sio::message::ptr object_message_drive_player = sio::object_message::create();
 
-			auto map = map_info["map"]->get_vector();
+			// update
+			elBombGame->updateMap(map_info);
+			//elBombGame->updatePlayerPosition(myCurrentPosition);
 
-			Game* elBombGame = Game::getInstance();
-
-			// update player
-			elBombGame->updateMap(map);
-
-			auto players = map_info["players"]->get_vector();
-
-			//class player
-
-
-			//for (const auto& info : map_info)
-			//{
-			//	if (info.first.compare("size") == 0)
-			//	{
-			//		auto map_size = info.second.get();
-			//		int64_t map_size_rows = map_size->get_map()["rows"]->get_int();
-			//		int64_t map_size_cols = map_size->get_map()["cols"]->get_int();
-			//		EM("rows :" << map_size_rows << " cols :" << map_size_cols);
-			//		break;
-			//	}
-			//}
-
-			//string user = data->get_map()["gameStatus"]->get_string(); //null => crash 
-			//string message = data->get_map()["gameRemainTime"]->get_string();
-			//EM(user << ":" << message);
-
-			// send drive player  "direction": "1111333332222224444"
-
-			{
-				static int count = 0;
-				if (count++ > 20)
-				{
-					
-					std::string socket_event = "drive player";
-					sio::message::ptr object_message_drive_player = sio::object_message::create();
-					object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create("1111b2222")));
-					current_socket->emit(socket_event, object_message_drive_player);
-					count = 0;
-					EM("drive player");
-				}
-
+			
+			// move
+			std::string movePath = elBombGame->getPath(isSafe);
+			if (movePath != "") { 
+				object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create(movePath)));
+				current_socket->emit("drive player", object_message_drive_player);
 			}
 
 			_lock.unlock();
-
-
-
-
 		}));
 }
 
 MAIN_FUNC
 {
 	string game_id = GAME_ID;
-	string player_id1 = PLAYER_ID1;
-	string player_id2 = PLAYER_ID2;
+	cout << "game id: ";
+	cin >> game_id;
+	cout << "player id: ";
+	cin >> player_id;
+	player_id_str += to_string(player_id) + "-xxx";
 
 	sio::client h;
 	connection_listener cl(h);
+	sio::message::ptr object_message_drive_player = sio::object_message::create();
 
 	Game* elBombGame = Game::getInstance();
 
@@ -185,8 +164,7 @@ MAIN_FUNC
 	_lock.unlock();
 	current_socket = h.socket();
 
-	join_room(game_id, player_id1);
-	join_room(game_id, player_id2);
+	join_room(game_id, player_id_str);
 	bind_events();
 
 	char input;
@@ -199,6 +177,11 @@ MAIN_FUNC
 			std::cout << "Chương trình kết thúc." << std::endl;
 			break; // Thoát khỏi vòng lặp nếu nhấn 'Q'
 		}
+
+		if (input == 'p' || input == 'P') {
+			Game::getInstance()->getMapGame().print();
+		}
+
 
 		// Xử lý ký tự được nhập
 		switch (input) {
