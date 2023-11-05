@@ -77,7 +77,6 @@ void Map::updateMap(std::map<std::string, sio::message::ptr> map_info) {
 			}
 		}
 	}
-	_map[enemyCurrentPosition["row"]->get_int()][enemyCurrentPosition["col"]->get_int()] = 1;
 
 	// Bombs
 	for (const auto& bomb : bombs)
@@ -87,7 +86,7 @@ void Map::updateMap(std::map<std::string, sio::message::ptr> map_info) {
 		int remainTime = _bomb["remainTime"]->get_int();
 		const int row = _bomb["row"]->get_int();
 		const int col = _bomb["col"]->get_int();
-		_map[row][col] = 1;
+		_map[row][col] = BOMB;
 		for (int j = 0; j < 4; j++) {
 			for (int i = 1; i <= power[playerId - 1]; i++)
 			{
@@ -96,11 +95,17 @@ void Map::updateMap(std::map<std::string, sio::message::ptr> map_info) {
 
 				if (isValid(_row, _col, _map.size(), _map[0].size())) {
 					if (_map[_row][_col] == WALL) break;
-					if (_map[_row][_col] == ROAD) _map[_row][_col] = -remainTime;
+					if (_map[_row][_col] == ROAD) _map[_row][_col] = -remainTime - BOMB_OFFSET;
+					if (_map[_row][_col] == BALK) {
+						_map[_row][_col] = WALL;
+						break;
+					}
 				}
 			}
 		}
 	}
+
+	_map[enemyCurrentPosition["row"]->get_int()][enemyCurrentPosition["col"]->get_int()] = ENEMY;
 
 	// Eggs	
 	for (const auto& egg : spoils) {

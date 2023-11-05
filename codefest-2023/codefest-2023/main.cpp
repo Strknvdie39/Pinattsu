@@ -78,14 +78,6 @@ public:
 
 };
 
-bool isSafe(const std::vector<std::vector<int>>& map, int row, int col) {
-	return map[row][col] == ROAD || 
-		map[row][col] == SPEED_EGG ||
-		map[row][col] == ATTACK_EGG ||
-		map[row][col] == DELAY_EGG ||
-		map[row][col] <= -500;
-}
-
 void join_room(std::string& game_id, std::string& player_id)
 {
 	std::string socket_event = "join game";
@@ -116,23 +108,42 @@ void bind_events()
 			// Init
 			Game* elBombGame = Game::getInstance();
 			std::map<std::string, message::ptr> map_info = data->get_map()["map_info"]->get_map();
-			//int64_t map_size_rows = map_info["size"]->get_map()["rows"]->get_int();
-			//int64_t map_size_cols = map_info["size"]->get_map()["cols"]->get_int();
-			
+			std::string movePath;
 			sio::message::ptr object_message_drive_player = sio::object_message::create();
 
 			// update
 			elBombGame->updateMap(map_info);
-			//elBombGame->updatePlayerPosition(myCurrentPosition);
-
 			
 			// move
-			std::string movePath = elBombGame->getPath(isSafe);
-			if (movePath != "") { 
-				object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create(movePath)));
-				current_socket->emit("drive player", object_message_drive_player);
-			}
+			movePath = elBombGame->getPath(SAFE, false);
+			if (movePath != "") goto send;
 
+			movePath = elBombGame->getPath(TEMPORARY_SAFE, false);
+			if (movePath != "") goto send;
+
+			if (!elBombGame->isCurrentlySafe()) {
+				movePath = elBombGame->getPath(TP_GATE, false);
+				if (movePath != "") goto send;
+			}			
+			movePath = elBombGame->getPath(POWER_UP, false);
+			if (movePath != "") goto send;
+
+			movePath = elBombGame->getPath(ENEMY, false);
+			if (movePath != "")	goto send;
+			movePath = elBombGame->getPath(ENEMY, true);
+			if (movePath == "wait")	goto end;
+			if (movePath != "")	goto send;			
+			
+			movePath = elBombGame->getPath(TP_GATE, false);
+			if (movePath == "") goto end;
+			
+
+			send:
+			cout << movePath << endl;
+			object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create(movePath)));
+			current_socket->emit("drive player", object_message_drive_player);
+
+			end:
 			_lock.unlock();
 		}));
 }

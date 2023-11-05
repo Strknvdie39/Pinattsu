@@ -14,6 +14,15 @@
 
 #define TEAM_GST_EGG 8
 #define ENEMY_GST_EGG 9
+#define ENEMY 10
+#define BOMB 11
+
+#define POWER_UP 12
+#define SAFE 13
+#define TEMPORARY_SAFE 13
+
+
+#define BOMB_OFFSET 300
 
 class Map
 {

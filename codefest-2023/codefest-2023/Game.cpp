@@ -14,7 +14,9 @@ public:
     queueNode* previousNode;  // direction from the previous cell    
 };
 
-std::string getRelativePosition(Position src, Position dest) {
+std::string getRelativePosition(Position src, Position dest) {    
+    if (MAP[dest.getRow()][dest.getCol()] == BALK) return "b";
+    if (MAP[dest.getRow()][dest.getCol()] == ENEMY) return "b";
     int dRow = src.getRow() - dest.getRow();
     int dCol = src.getCol() - dest.getCol();
     if (dRow > 0) return UP;
@@ -24,24 +26,52 @@ std::string getRelativePosition(Position src, Position dest) {
     return "";
 }
 
-bool isValid(int row, int col)
+bool isValid(const std::vector<std::vector<int>>& map, int row, int col)
 {
-    // return true if row number and column number
-    // is in range
-    return (row >= 0) && (row < ROW) &&
-        (col >= 0) && (col < COL);
+    return (row >= 0) && (row < ROW) && (col >= 0) && (col < COL);
+}
+
+bool isDest(const std::vector<std::vector<int>>& map, int row, int col)
+{
+    return map[row][col] == ROAD ||
+            map[row][col] == SPEED_EGG ||
+            map[row][col] == ATTACK_EGG ||
+            map[row][col] == DELAY_EGG ||
+            map[row][col] == MYSTIC_EGG ||
+            map[row][col] == BALK ||
+            map[row][col] == TP_GATE ||
+            map[row][col] == ENEMY ||
+            map[row][col] <= - 450 - BOMB_OFFSET;
+}
+
+bool isSafe(const std::vector<std::vector<int>>& map, int row, int col) {
+    return map[row][col] == ROAD ||
+        map[row][col] == SPEED_EGG ||
+        map[row][col] == ATTACK_EGG ||
+        map[row][col] == DELAY_EGG ||
+        map[row][col] == MYSTIC_EGG;
+}
+
+bool isTemporaySafe(const std::vector<std::vector<int>>& map, int row, int col) {
+    return map[row][col] == ROAD ||
+        map[row][col] == SPEED_EGG ||
+        map[row][col] == ATTACK_EGG ||
+        map[row][col] == DELAY_EGG ||
+        map[row][col] == MYSTIC_EGG ||
+        map[row][col] <= - 450 - BOMB_OFFSET;
+}
+
+bool isPowerUp(const std::vector<std::vector<int>>& map, int row, int col) {
+    return map[row][col] == SPEED_EGG ||
+        map[row][col] == ATTACK_EGG ||
+        map[row][col] == DELAY_EGG ||
+        map[row][col] == MYSTIC_EGG;
 }
 
 // These arrays are used to get row and column
 // numbers of 4 neighbours of a given cell
 int rowNum[] = { -1, 0, 0, 1 };
 int colNum[] = { 0, -1, 1, 0 };
-
-// find path to closest safe cell
-std::string findPath(const std::vector<std::vector<int>>& map, Position src)
-{
-    return "";
-}
 
 void print_queue(std::queue<queueNode*> q)
 {
@@ -53,7 +83,7 @@ void print_queue(std::queue<queueNode*> q)
     std::cout << std::endl;
 }
 
-std::string Game::getPath(bool (*destinationCriteria)(const std::vector<std::vector<int>>& map, int row, int col))
+std::string Game::getPath(int destination, bool potentialPath)
 {
     std::vector<std::vector<int>> map = MAP;
     Position src = _player.getPosition();
@@ -75,36 +105,58 @@ std::string Game::getPath(bool (*destinationCriteria)(const std::vector<std::vec
         d = nullptr;
         queueNode* curr = q.front();
         Position pt = curr->pt;
-        //std::cout << ":::" << pt.getRow() << "," << pt.getCol() << ":::" << std::endl;
-        //print_queue(q);
-        if (destinationCriteria(map, pt.getRow(), pt.getCol())) {
-            d = curr;
-            //std::cout << "================" << std::endl;
-            break;
+        if (destination == SAFE) {
+            if (isSafe(map, pt.getRow(), pt.getCol())) {
+                d = curr;
+                break;
+            }
+        }
+        else if (destination == TEMPORARY_SAFE){
+            if (isTemporaySafe(map, pt.getRow(), pt.getCol())) {
+                d = curr;
+                break;
+            }
+        }
+        else if (destination == POWER_UP) {
+            if (isPowerUp(map, pt.getRow(), pt.getCol())) {
+                d = curr;
+                break;
+            }
+        }
+        else {
+            if ((map[pt.getRow()][pt.getCol()] == destination)) {
+                d = curr;
+                break;
+            }
         }
 
         q.pop();
+        if (map[pt.getRow()][pt.getCol()] == BALK) continue;
+        if (map[pt.getRow()][pt.getCol()] == TP_GATE) continue;
+        if (map[pt.getRow()][pt.getCol()] == ENEMY) continue;
 
         for (int i = 0; i < 4; i++)
         {
             int row = pt.getRow() + rowNum[i];
             int col = pt.getCol() + colNum[i];
 
-            if (isValid(row, col) && map[row][col] <= 0 && !visited[row][col])
+            if (isValid(map, row, col) && !visited[row][col] && 
+                (isDest(map, row, col) || (potentialPath == true && (map[row][col] == BOMB || map[row][col] < 0))))
             {
                 visited[row][col] = true;
                 queueNode* Adjcell = new queueNode({row, col}, curr );
                 q.push(Adjcell);
             }
         }
-        //std::cout << "================" << std::endl;
     }
 
     while (d != nullptr && d->previousNode != nullptr && d->previousNode != d) {
         Position sr = d->previousNode->pt;
         Position ds = d->pt;
+        if (potentialPath) {
+             if (MAP[ds.getRow()][ds.getCol()] == BOMB || MAP[ds.getRow()][ds.getCol()] < 0) return "wait";
+        }
         path = getRelativePosition(sr, ds);
-        //std::cout << "path " << sr.getRow() << ", " << sr.getCol() << "->" << ds.getRow() << ", " << ds.getCol() << ": " << path << std::endl;
         d = d->previousNode;
     }
     return path;

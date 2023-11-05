@@ -7,6 +7,7 @@
 #define COL Game::getInstance()->getMapGame().getSizeCols()
 #define ROW Game::getInstance()->getMapGame().getSizeRows()
 #define MAP Game::getInstance()->getMapGame().getMap()
+#define PLAYER Game::getInstance()->getMapGame().getMap()
 class Game
 {
 private:
@@ -34,6 +35,13 @@ public:
 		return _mapGame;
 	}
 
+	bool isCurrentlySafe() {
+		Position curr = _player.getPosition();
+		int currPosValue = _mapGame.getMap()[curr.getRow()][curr.getCol()];
+		return currPosValue == ROAD ||
+			currPosValue <= - 600;
+	}
+
 	void updatePlayerPosition(std::map<std::string, sio::message::ptr> currentPosition) {
 		_player.updatePosotion(currentPosition["row"]->get_int(), currentPosition["col"]->get_int());
 	}
@@ -43,6 +51,6 @@ public:
 		_bombs = bombs;
 	}
 
-	std::string getPath(bool (*destinationCriteria)(const std::vector<std::vector<int>>& map, int row, int col));
+	std::string getPath(int destination, bool potentialPath);
 };
 
