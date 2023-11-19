@@ -64,8 +64,7 @@ bool isTemporaySafe(const std::vector<std::vector<int>>& map, int row, int col) 
 bool isPowerUp(const std::vector<std::vector<int>>& map, int row, int col) {
     return map[row][col] == SPEED_EGG ||
         map[row][col] == ATTACK_EGG ||
-        map[row][col] == DELAY_EGG ||
-        map[row][col] == MYSTIC_EGG;
+        map[row][col] == DELAY_EGG;
 }
 
 // These arrays are used to get row and column
@@ -86,8 +85,9 @@ void print_queue(std::queue<queueNode*> q)
 std::string Game::getPath(int destination, bool potentialPath)
 {
     std::vector<std::vector<int>> map = MAP;
-    Position src = _player.getPosition();
     if (map.empty()) return "";
+    Position src = _player.getPosition();
+    if (destination == ENEMY && map[src.getRow()][src.getCol()] == ENEMY) return "b";
 
     std::string path = "";
     queueNode* d = nullptr;
@@ -102,7 +102,6 @@ std::string Game::getPath(int destination, bool potentialPath)
     q.push(s);
     while (!q.empty())
     {
-        d = nullptr;
         queueNode* curr = q.front();
         Position pt = curr->pt;
         if (destination == SAFE) {
@@ -133,8 +132,7 @@ std::string Game::getPath(int destination, bool potentialPath)
         q.pop();
         if (map[pt.getRow()][pt.getCol()] == BALK) continue;
         if (map[pt.getRow()][pt.getCol()] == TP_GATE) continue;
-        if (map[pt.getRow()][pt.getCol()] == ENEMY) continue;
-
+        //if (map[pt.getRow()][pt.getCol()] == ENEMY) continue;
         for (int i = 0; i < 4; i++)
         {
             int row = pt.getRow() + rowNum[i];
@@ -149,6 +147,7 @@ std::string Game::getPath(int destination, bool potentialPath)
             }
         }
     }
+    if (d == nullptr && destination == TEMPORARY_SAFE) return "no_temp_safe_zone";
 
     while (d != nullptr && d->previousNode != nullptr && d->previousNode != d) {
         Position sr = d->previousNode->pt;
@@ -159,6 +158,7 @@ std::string Game::getPath(int destination, bool potentialPath)
         path = getRelativePosition(sr, ds);
         d = d->previousNode;
     }
+
     return path;
 }
 

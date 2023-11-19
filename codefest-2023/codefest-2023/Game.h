@@ -39,7 +39,7 @@ public:
 		Position curr = _player.getPosition();
 		int currPosValue = _mapGame.getMap()[curr.getRow()][curr.getCol()];
 		return currPosValue == ROAD ||
-			currPosValue <= - 600;
+			currPosValue <= - 450 - BOMB_OFFSET;
 	}
 
 	void updatePlayerPosition(std::map<std::string, sio::message::ptr> currentPosition) {

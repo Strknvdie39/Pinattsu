@@ -2,27 +2,30 @@
 #include <vector>
 #include <sio_message.h>
 
-#define ROAD 0
-#define WALL 1
-#define BALK 2
+#define ROAD			0
+#define WALL			1
+#define BALK			2
+#define TP_GATE			3
+#define PRISON			4
+#define GST_EGG			5
 
-#define TP_GATE 3
-#define SPEED_EGG 4
-#define ATTACK_EGG 5
-#define DELAY_EGG 6
-#define MYSTIC_EGG 7
+#define TEAM_GST_EGG	6
+#define ENEMY_GST_EGG	7
 
-#define TEAM_GST_EGG 8
-#define ENEMY_GST_EGG 9
-#define ENEMY 10
-#define BOMB 11
+#define SPEED_EGG		8
+#define ATTACK_EGG		9
+#define DELAY_EGG		10
+#define MYSTIC_EGG		11
 
-#define POWER_UP 12
-#define SAFE 13
-#define TEMPORARY_SAFE 13
+#define ENEMY			12
+#define BOMB			13
+
+#define POWER_UP		14
+#define SAFE			15
+#define TEMPORARY_SAFE	16
 
 
-#define BOMB_OFFSET 300
+#define BOMB_OFFSET 450
 
 class Map
 {

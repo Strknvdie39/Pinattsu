@@ -26,10 +26,14 @@
 
 
 #define GAME_ID		"3f22d49d-4897-42a1-a42c-af317cf1ccf9"
-//string join_id = "player-2-xxx";
-std::string player_id_str = "player";
-// player id = 0 or 1
-int player_id = 0;
+std::string key = "player";
+std::string player_id = "player";
+
+// index = 0 or 1
+int player_index = -1;
+int enemy_index = -1;
+
+bool isEnemyInPrison = false;
 
 using namespace sio;
 using namespace std;
@@ -108,6 +112,7 @@ void bind_events()
 			// Init
 			Game* elBombGame = Game::getInstance();
 			std::map<std::string, message::ptr> map_info = data->get_map()["map_info"]->get_map();
+			std::string tempMovePath;
 			std::string movePath;
 			sio::message::ptr object_message_drive_player = sio::object_message::create();
 
@@ -115,19 +120,22 @@ void bind_events()
 			elBombGame->updateMap(map_info);
 			
 			// move
-			movePath = elBombGame->getPath(SAFE, false);
-			if (movePath != "") goto send;
-
+			/* Go to safe zone */
 			movePath = elBombGame->getPath(TEMPORARY_SAFE, false);
+			if (movePath == "no_temp_safe_zone") movePath = elBombGame->getPath(SAFE, false);
 			if (movePath != "") goto send;
 
 			if (!elBombGame->isCurrentlySafe()) {
 				movePath = elBombGame->getPath(TP_GATE, false);
 				if (movePath != "") goto send;
-			}			
+			}
+
+			/* Get power up */
 			movePath = elBombGame->getPath(POWER_UP, false);
 			if (movePath != "") goto send;
 
+			/* Follow enemy */
+			if (isEnemyInPrison) goto end;
 			movePath = elBombGame->getPath(ENEMY, false);
 			if (movePath != "")	goto send;
 			movePath = elBombGame->getPath(ENEMY, true);
@@ -151,11 +159,15 @@ void bind_events()
 MAIN_FUNC
 {
 	string game_id = GAME_ID;
+	string URI = "http://127.0.0.1";
+	cout << "URI: ";
+	cin >> URI;
 	cout << "game id: ";
 	cin >> game_id;
+	cout << "key: ";
+	cin >> key;
 	cout << "player id: ";
 	cin >> player_id;
-	player_id_str += to_string(player_id) + "-xxx";
 
 	sio::client h;
 	connection_listener cl(h);
@@ -166,7 +178,7 @@ MAIN_FUNC
 	h.set_open_listener(std::bind(&connection_listener::on_connected, &cl));
 	h.set_close_listener(std::bind(&connection_listener::on_close, &cl, std::placeholders::_1));
 	h.set_fail_listener(std::bind(&connection_listener::on_fail, &cl));
-	h.connect("http://127.0.0.1");
+	h.connect(URI);
 	_lock.lock();
 	if (!cl.connect_finish)
 	{
@@ -175,7 +187,7 @@ MAIN_FUNC
 	_lock.unlock();
 	current_socket = h.socket();
 
-	join_room(game_id, player_id_str);
+	join_room(game_id, key);
 	bind_events();
 
 	char input;

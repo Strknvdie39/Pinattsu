@@ -35,20 +35,27 @@ bool isValid(const int& row, const int& col, const int& row_size, const int& col
 	return 0 <= row && row < row_size && 0 <= col && col < col_size;
 }
 
-extern int player_id;
-extern std::string player_id_str;
+extern int player_index;
+extern int enemy_index;
+extern bool isEnemyInPrison;
+extern std::string player_id;
 bool firstTime = true;
 void Map::updateMap(std::map<std::string, sio::message::ptr> map_info) {
-	int enemy_id = player_id % 2;
 	auto map = map_info["map"]->get_vector();
 	auto players = map_info["players"]->get_vector();
 	auto bombs = map_info["bombs"]->get_vector();
 	auto spoils = map_info["spoils"]->get_vector();
 	auto dragonEggGSTArray = map_info["dragonEggGSTArray"]->get_vector();
 
+	// check player index
+	if (firstTime) {
+		player_index = (players[1]->get_map()["id"]->get_string() == player_id);
+		enemy_index = (player_index+1) % 2;
+	}
+
 	int power[] = { players[0]->get_map()["power"]->get_int(), players[1]->get_map()["power"]->get_int() };
-	auto myCurrentPosition = players[player_id - 1]->get_map()["currentPosition"]->get_map();
-	auto enemyCurrentPosition = players[enemy_id]->get_map()["currentPosition"]->get_map();
+	auto myCurrentPosition = players[player_index]->get_map()["currentPosition"]->get_map();
+	auto enemyCurrentPosition = players[enemy_index]->get_map()["currentPosition"]->get_map();
 	Game::getInstance()->updatePlayerPosition(myCurrentPosition);
 	
 	// Walls
@@ -64,7 +71,6 @@ void Map::updateMap(std::map<std::string, sio::message::ptr> map_info) {
 			new_map.push_back(row);
 		}
 		_map = new_map;
-		firstTime = false;
 	}
 	else {
 		for (int i = 0; i < _map.size(); i++)
@@ -78,34 +84,14 @@ void Map::updateMap(std::map<std::string, sio::message::ptr> map_info) {
 		}
 	}
 
-	// Bombs
-	for (const auto& bomb : bombs)
-	{
-		auto _bomb = bomb->get_map();
-		const int playerId = stoi(_bomb["playerId"]->get_string().substr(6, 1));
-		int remainTime = _bomb["remainTime"]->get_int();
-		const int row = _bomb["row"]->get_int();
-		const int col = _bomb["col"]->get_int();
-		_map[row][col] = BOMB;
-		for (int j = 0; j < 4; j++) {
-			for (int i = 1; i <= power[playerId - 1]; i++)
-			{
-				int _row = row + i * rowNum[j];
-				int _col = col + i * colNum[j];
-
-				if (isValid(_row, _col, _map.size(), _map[0].size())) {
-					if (_map[_row][_col] == WALL) break;
-					if (_map[_row][_col] == ROAD) _map[_row][_col] = -remainTime - BOMB_OFFSET;
-					if (_map[_row][_col] == BALK) {
-						_map[_row][_col] = WALL;
-						break;
-					}
-				}
-			}
-		}
+	// Enemy
+	if (_map[enemyCurrentPosition["row"]->get_int()][enemyCurrentPosition["col"]->get_int()] != PRISON) {
+		_map[enemyCurrentPosition["row"]->get_int()][enemyCurrentPosition["col"]->get_int()] = ENEMY;
+		isEnemyInPrison = false;
 	}
-
-	_map[enemyCurrentPosition["row"]->get_int()][enemyCurrentPosition["col"]->get_int()] = ENEMY;
+	else {
+		isEnemyInPrison = true;
+	}	
 
 	// Eggs	
 	for (const auto& egg : spoils) {
@@ -137,13 +123,42 @@ void Map::updateMap(std::map<std::string, sio::message::ptr> map_info) {
 		int row = _dragonEggGST["row"]->get_int();
 		int col = _dragonEggGST["col"]->get_int();
 		std::string id = _dragonEggGST["id"]->get_string();
-		if (id == player_id_str) {
+		if (id == player_id) {
 			_map[row][col] = TEAM_GST_EGG;
 		}
 		else {
 			_map[row][col] = ENEMY_GST_EGG;
 		}
 	}	
+
+	// Bombs
+	for (const auto& bomb : bombs)
+	{
+		auto _bomb = bomb->get_map();
+		const int playerId = stoi(_bomb["playerId"]->get_string().substr(6, 1));
+		int remainTime =  - (_bomb["remainTime"]->get_int() + BOMB_OFFSET);
+		const int row = _bomb["row"]->get_int();
+		const int col = _bomb["col"]->get_int();
+		_map[row][col] = BOMB;
+		for (int j = 0; j < 4; j++) {
+			for (int i = 1; i <= power[playerId - 1]; i++)
+			{
+				int _row = row + i * rowNum[j];
+				int _col = col + i * colNum[j];
+
+				if (isValid(_row, _col, _map.size(), _map[0].size())) {
+					if (_map[_row][_col] == WALL) break;
+					if (_map[_row][_col] == ROAD && _map[_row][_col] > remainTime) _map[_row][_col] = remainTime;
+					if (_map[_row][_col] == BALK) {
+						_map[_row][_col] = WALL;
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	firstTime = false;
 }
 
 void Map::updatePositionInMap(int &row, int &col, int &value)
