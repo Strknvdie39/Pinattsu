@@ -24,10 +24,9 @@
 #define SAFE			15
 #define TEMPORARY_SAFE	16
 
-#define BALK_ABOUT_TO_EXPLODE 17
-
 
 #define BOMB_OFFSET 450
+
 class Map
 {
 public:

@@ -9,7 +9,6 @@
 #include "Map.h"
 #include "Game.h"
 #include <conio.h>
-#include <chrono>
 
 #ifdef WIN32
 #define HIGHLIGHT(__O__) std::cout<<__O__<<std::endl
@@ -25,16 +24,10 @@
 #define MAIN_FUNC int main(int argc ,const char* args[])
 #endif
 
-using namespace sio;
-using namespace std;
 
 #define GAME_ID		"3f22d49d-4897-42a1-a42c-af317cf1ccf9"
 std::string key = "player";
 std::string player_id = "player";
-
-int ping = 0;
-auto pingStart = chrono::high_resolution_clock::now();
-auto pingEnd = chrono::high_resolution_clock::now();
 
 // index = 0 or 1
 int player_index = -1;
@@ -42,6 +35,8 @@ int enemy_index = -1;
 
 bool isEnemyInPrison = false;
 
+using namespace sio;
+using namespace std;
 
 std::mutex _lock;
 std::condition_variable_any _cond;
@@ -113,16 +108,11 @@ void bind_events()
 	current_socket->on("ticktack player", sio::socket::event_listener_aux([&](string const& name, message::ptr const& data, bool isAck, message::list& ack_resp)
 		{
 			_lock.lock();
-			pingEnd = chrono::high_resolution_clock::now();
-			ping = chrono::duration_cast<chrono::milliseconds>(pingEnd - pingStart).count();
-			pingStart = chrono::high_resolution_clock::now();
-			cout << ping << "ms" << endl;
 
 			// Init
 			Game* elBombGame = Game::getInstance();
 			std::map<std::string, message::ptr> map_info = data->get_map()["map_info"]->get_map();
-			std::pair<std::string, int> path1;
-			std::pair<std::string, int> path2;
+			std::string tempMovePath;
 			std::string movePath;
 			sio::message::ptr object_message_drive_player = sio::object_message::create();
 
@@ -131,40 +121,33 @@ void bind_events()
 			
 			// move
 			/* Go to safe zone */
-			movePath = elBombGame->getPath(TEMPORARY_SAFE, false).first;
-			if (movePath == "no_temp_safe_zone") movePath = elBombGame->getPath(SAFE, false).first;
+			movePath = elBombGame->getPath(TEMPORARY_SAFE, false);
+			if (movePath == "no_temp_safe_zone") movePath = elBombGame->getPath(SAFE, false);
 			if (movePath != "") goto send;
 
 			if (!elBombGame->isCurrentlySafe()) {
-				movePath = elBombGame->getPath(TP_GATE, false).first;
+				movePath = elBombGame->getPath(TP_GATE, false);
 				if (movePath != "") goto send;
 			}
 
 			/* Get power up */
-			movePath = elBombGame->getPath(POWER_UP, false).first;
+			movePath = elBombGame->getPath(POWER_UP, false);
 			if (movePath != "") goto send;
 
 			/* Follow enemy */
 			if (isEnemyInPrison) goto end;
+			movePath = elBombGame->getPath(ENEMY, false);
+			if (movePath != "")	goto send;
+			movePath = elBombGame->getPath(ENEMY, true);
+			if (movePath == "wait")	goto end;
+			if (movePath != "")	goto send;			
 			
-			path1 = elBombGame->getPath(ENEMY, false);
-			path2 = elBombGame->getPath(ENEMY, true);
-			if (path2.second+2< path1.second) {
-				movePath = path2.first;
-				if (movePath == "wait") goto end;
-				if (movePath == "")	goto end;
-			}
-			else {
-				movePath = path1.first;
-				if (movePath == "")	goto end;
-			}
+			movePath = elBombGame->getPath(TP_GATE, false);
+			if (movePath == "") goto end;
 			
-			//movePath = elBombGame->getPath(TP_GATE, false);
-			//if (movePath == "") goto end;
-
 
 			send:
-			//object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create("x")));
+			cout << movePath << endl;
 			object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create(movePath)));
 			current_socket->emit("drive player", object_message_drive_player);
 
