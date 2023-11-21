@@ -35,6 +35,7 @@ bool isValid(const int& row, const int& col, const int& row_size, const int& col
 	return 0 <= row && row < row_size && 0 <= col && col < col_size;
 }
 
+extern int ping;
 extern int player_index;
 extern int enemy_index;
 extern bool isEnemyInPrison;
@@ -79,8 +80,16 @@ void Map::updateMap(std::map<std::string, sio::message::ptr> map_info) {
 			const std::vector<sio::message::ptr> row = map_row->get_vector();
 			for (int j = 0; j < row.size(); j++)
 			{
-				_map[i][j] = row[j]->get_int();
+				if (_map[i][j] < 0) {
+					_map[i][j] = _map[i][j] + ping;
+					if (_map[i][j] > 0) _map[i][j] = 0;
+				}
+				else if (_map[i][j] = BALK_ABOUT_TO_EXPLODE && row[j]->get_int() == ROAD) {
+					_map[i][j] = -BOMB_OFFSET;
+				}
+				else _map[i][j] = row[j]->get_int();
 			}
+		
 		}
 	}
 
@@ -98,6 +107,7 @@ void Map::updateMap(std::map<std::string, sio::message::ptr> map_info) {
 		auto _egg = egg->get_map();
 		const int row = _egg["row"]->get_int();
 		const int col = _egg["col"]->get_int();
+		if (_map[row][col] < 0) continue;
 		const int type = _egg["spoil_type"]->get_int();
 		switch (type) {
 		case 3:
@@ -146,11 +156,11 @@ void Map::updateMap(std::map<std::string, sio::message::ptr> map_info) {
 				int _row = row + i * rowNum[j];
 				int _col = col + i * colNum[j];
 
-				if (isValid(_row, _col, _map.size(), _map[0].size())) {
-					if (_map[_row][_col] == WALL) break;
+				if (isValid(_row, _col, _map.size(), _map[0].size()) && _map[_row][_col] >= 0) {
+					if (_map[_row][_col] == WALL || _map[_row][_col] == BALK_ABOUT_TO_EXPLODE) break;
 					if (_map[_row][_col] == ROAD && _map[_row][_col] > remainTime) _map[_row][_col] = remainTime;
 					if (_map[_row][_col] == BALK) {
-						_map[_row][_col] = WALL;
+						_map[_row][_col] = BALK_ABOUT_TO_EXPLODE;
 						break;
 					}
 				}
