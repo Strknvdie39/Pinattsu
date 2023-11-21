@@ -15,6 +15,7 @@ public:
 };
 
 std::string getRelativePosition(Position src, Position dest) {    
+    if (MAP[dest.getRow()][dest.getCol()] == BALK_ABOUT_TO_EXPLODE) return "";
     if (MAP[dest.getRow()][dest.getCol()] == BALK) return "b";
     if (MAP[dest.getRow()][dest.getCol()] == ENEMY) return "b";
     int dRow = src.getRow() - dest.getRow();

@@ -36,6 +36,7 @@ bool isValid(const int& row, const int& col, const int& row_size, const int& col
 }
 
 extern int ping;
+extern int count_BALK_ABOUT_TO_EXPLODE;
 extern int player_index;
 extern int enemy_index;
 extern bool isEnemyInPrison;
@@ -84,8 +85,9 @@ void Map::updateMap(std::map<std::string, sio::message::ptr> map_info) {
 					_map[i][j] = _map[i][j] + ping;
 					if (_map[i][j] > 0) _map[i][j] = 0;
 				}
-				else if (_map[i][j] = BALK_ABOUT_TO_EXPLODE && row[j]->get_int() == ROAD) {
+				else if (_map[i][j] == BALK_ABOUT_TO_EXPLODE && row[j]->get_int() == ROAD) {
 					_map[i][j] = -BOMB_OFFSET;
+					count_BALK_ABOUT_TO_EXPLODE--;
 				}
 				else _map[i][j] = row[j]->get_int();
 			}
@@ -145,13 +147,15 @@ void Map::updateMap(std::map<std::string, sio::message::ptr> map_info) {
 	for (const auto& bomb : bombs)
 	{
 		auto _bomb = bomb->get_map();
-		const int playerId = stoi(_bomb["playerId"]->get_string().substr(6, 1));
+		int playerId;
+		if (_bomb["playerId"]->get_string() == player_id) playerId = player_index;
+		else playerId = enemy_index;
 		int remainTime =  - (_bomb["remainTime"]->get_int() + BOMB_OFFSET);
 		const int row = _bomb["row"]->get_int();
 		const int col = _bomb["col"]->get_int();
 		_map[row][col] = BOMB;
 		for (int j = 0; j < 4; j++) {
-			for (int i = 1; i <= power[playerId - 1]; i++)
+			for (int i = 1; i <= power[playerId]; i++)
 			{
 				int _row = row + i * rowNum[j];
 				int _col = col + i * colNum[j];
@@ -161,6 +165,7 @@ void Map::updateMap(std::map<std::string, sio::message::ptr> map_info) {
 					if (_map[_row][_col] == ROAD && _map[_row][_col] > remainTime) _map[_row][_col] = remainTime;
 					if (_map[_row][_col] == BALK) {
 						_map[_row][_col] = BALK_ABOUT_TO_EXPLODE;
+						count_BALK_ABOUT_TO_EXPLODE++;
 						break;
 					}
 				}

@@ -41,6 +41,7 @@ int player_index = -1;
 int enemy_index = -1;
 
 bool isEnemyInPrison = false;
+int count_BALK_ABOUT_TO_EXPLODE = 0;
 
 
 std::mutex _lock;
@@ -113,10 +114,12 @@ void bind_events()
 	current_socket->on("ticktack player", sio::socket::event_listener_aux([&](string const& name, message::ptr const& data, bool isAck, message::list& ack_resp)
 		{
 			_lock.lock();
-			pingEnd = chrono::high_resolution_clock::now();
-			ping = chrono::duration_cast<chrono::milliseconds>(pingEnd - pingStart).count();
-			pingStart = chrono::high_resolution_clock::now();
-			cout << ping << "ms" << endl;
+			if (count_BALK_ABOUT_TO_EXPLODE) {
+				pingEnd = chrono::high_resolution_clock::now();
+				ping = chrono::duration_cast<chrono::milliseconds>(pingEnd - pingStart).count();
+				pingStart = chrono::high_resolution_clock::now();
+			}
+			
 
 			// Init
 			Game* elBombGame = Game::getInstance();
