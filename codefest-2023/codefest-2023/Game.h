@@ -46,11 +46,19 @@ public:
 		_player.updatePosotion(currentPosition["row"]->get_int(), currentPosition["col"]->get_int());
 	}
 
+	void updatePlayerPosition(Position pos) {
+		_player.updatePosotion(pos.getRow(), pos.getCol());
+	}
+
 	void updateBombs(std::vector<Bomb> bombs)
 	{
 		_bombs = bombs;
 	}
 
-	std::string getPath(int destination, bool potentialPath);
+	std::pair<std::string, int> getPath(int destination, bool potentialPath);
+
+	void updatePositionInMap(int row, int col, int value) {
+		_mapGame.updatePositionInMap(row, col, value);
+	}
 };
 

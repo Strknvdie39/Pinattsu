@@ -39,9 +39,10 @@ bool isDest(const std::vector<std::vector<int>>& map, int row, int col)
             map[row][col] == DELAY_EGG ||
             map[row][col] == MYSTIC_EGG ||
             map[row][col] == BALK ||
+            map[row][col] == BALK_ABOUT_TO_EXPLODE ||
             map[row][col] == TP_GATE ||
             map[row][col] == ENEMY ||
-            map[row][col] <= - 450 - BOMB_OFFSET;
+            map[row][col] <= - 600 - BOMB_OFFSET;
 }
 
 bool isSafe(const std::vector<std::vector<int>>& map, int row, int col) {
@@ -58,7 +59,7 @@ bool isTemporaySafe(const std::vector<std::vector<int>>& map, int row, int col) 
         map[row][col] == ATTACK_EGG ||
         map[row][col] == DELAY_EGG ||
         map[row][col] == MYSTIC_EGG ||
-        map[row][col] <= - 450 - BOMB_OFFSET;
+        map[row][col] <= - 600 - BOMB_OFFSET;
 }
 
 bool isPowerUp(const std::vector<std::vector<int>>& map, int row, int col) {
@@ -81,21 +82,26 @@ void print_queue(std::queue<queueNode*> q)
     }
     std::cout << std::endl;
 }
-
-std::string Game::getPath(int destination, bool potentialPath)
+std::pair<std::string, int> Game::getPath(int destination, bool potentialPath)
 {
+    Game* elBombGame = Game::getInstance();
     std::vector<std::vector<int>> map = MAP;
-    if (map.empty()) return "";
+    if (map.empty()) return std::pair<std::string, int>("", 0);
     Position src = _player.getPosition();
-    if (destination == ENEMY && map[src.getRow()][src.getCol()] == ENEMY) return "b";
+    std::pair<std::string, int> path; // (move, distance)
+    std::queue<queueNode*> q;
+    bool visited[100][100];
 
-    std::string path = "";
+    path.second = 0;
+    if (destination == ENEMY && map[src.getRow()][src.getCol()] == ENEMY) {
+        path.first = "b";
+        goto end;
+    }    
+
     queueNode* d = nullptr;
     queueNode* s = new queueNode(src, nullptr);
 
     // Create a queue for BFS
-    std::queue<queueNode*> q;
-    bool visited[100][100];
     memset(visited, false, sizeof visited);
     visited[src.getRow()][src.getCol()] = true;
 
@@ -130,16 +136,19 @@ std::string Game::getPath(int destination, bool potentialPath)
         }
 
         q.pop();
-        if (map[pt.getRow()][pt.getCol()] == BALK) continue;
+        if (destination != ENEMY && map[pt.getRow()][pt.getCol()] == BALK) continue;
+        if (map[pt.getRow()][pt.getCol()] == ENEMY) continue;
         if (map[pt.getRow()][pt.getCol()] == TP_GATE) continue;
-        //if (map[pt.getRow()][pt.getCol()] == ENEMY) continue;
+        //int maxDistance = 10;
         for (int i = 0; i < 4; i++)
         {
             int row = pt.getRow() + rowNum[i];
             int col = pt.getCol() + colNum[i];
 
             if (isValid(map, row, col) && !visited[row][col] && 
-                (isDest(map, row, col) || (potentialPath == true && (map[row][col] == BOMB || map[row][col] < 0))))
+                (isDest(map, row, col) || 
+                (potentialPath == true && (map[row][col] == BOMB || map[row][col] < 0)))
+               )
             {
                 visited[row][col] = true;
                 queueNode* Adjcell = new queueNode({row, col}, curr );
@@ -147,18 +156,33 @@ std::string Game::getPath(int destination, bool potentialPath)
             }
         }
     }
-    if (d == nullptr && destination == TEMPORARY_SAFE) return "no_temp_safe_zone";
-
+    if (d == nullptr && destination == TEMPORARY_SAFE) return std::pair<std::string, int>("no_temp_safe_zone",0);
+    if (destination == TEMPORARY_SAFE) {
+        Position ds = d->pt;
+        elBombGame->updatePlayerPosition(ds);
+        std::string movePath = getPath(SAFE, false).first;
+        elBombGame->updatePlayerPosition(src);
+        if (movePath == "") return std::pair<std::string, int>("no_temp_safe_zone", 0);
+    }
     while (d != nullptr && d->previousNode != nullptr && d->previousNode != d) {
         Position sr = d->previousNode->pt;
         Position ds = d->pt;
+        path.second++;
         if (potentialPath) {
-             if (MAP[ds.getRow()][ds.getCol()] == BOMB || MAP[ds.getRow()][ds.getCol()] < 0) return "wait";
+             if (MAP[ds.getRow()][ds.getCol()] == BOMB || MAP[ds.getRow()][ds.getCol()] < 0) return std::pair<std::string, int>("wait", path.second);
         }
-        path = getRelativePosition(sr, ds);
+        path.first = getRelativePosition(sr, ds);
         d = d->previousNode;
     }
 
+end:
+    if (path.first == "b") {
+        int temp = MAP[src.getRow()][src.getCol()];
+        elBombGame->updatePositionInMap(src.getRow(), src.getCol(), BOMB);
+        std::string movePath = getPath(SAFE, false).first;
+        if (movePath == "") return std::pair<std::string, int>("", 0);
+        elBombGame->updatePositionInMap(src.getRow(), src.getCol(), temp);
+    }
     return path;
 }
 
@@ -166,5 +190,3 @@ void Game::updateMap(std::map<std::string, sio::message::ptr> map_info)
 {    
     _mapGame.updateMap(map_info);
 }
-
-
