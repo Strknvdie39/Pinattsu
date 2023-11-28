@@ -10,6 +10,8 @@
 #include "Game.h"
 #include <conio.h>
 #include <chrono>
+#include <fstream>
+
 
 #ifdef WIN32
 #define HIGHLIGHT(__O__) std::cout<<__O__<<std::endl
@@ -28,9 +30,9 @@
 using namespace sio;
 using namespace std;
 
-#define GAME_ID		"3f22d49d-4897-42a1-a42c-af317cf1ccf9"
-std::string key = "player";
-std::string player_id = "player";
+//#define GAME_ID		"3f22d49d-4897-42a1-a42c-af317cf1ccf9"
+//std::string key = "player";
+//std::string player_id = "player";
 
 int ping = 0;
 auto pingStart = chrono::high_resolution_clock::now();
@@ -43,6 +45,7 @@ int enemy_index = -1;
 bool isEnemyInPrison = false;
 int count_BALK_ABOUT_TO_EXPLODE = 0;
 
+string url, game_id, key, player_id;
 
 std::mutex _lock;
 std::condition_variable_any _cond;
@@ -176,18 +179,39 @@ void bind_events()
 		}));
 }
 
+void Setup(string filepath)
+{
+	ifstream inputFile(filepath);
+	if (getline(inputFile, url) &&
+		getline(inputFile, game_id) &&
+		getline(inputFile, key) &&
+		getline(inputFile, player_id))
+	{}
+	else
+	{
+		cerr << "Error file" << endl;
+	}
+	inputFile.close();
+}
+
 MAIN_FUNC
 {
-	string game_id = GAME_ID;
-	string URI = "http://127.0.0.1";
-	cout << "URI: ";
-	cin >> URI;
-	cout << "game id: ";
-	cin >> game_id;
-	cout << "key: ";
-	cin >> key;
-	cout << "player id: ";
-	cin >> player_id;
+	//string game_id = GAME_ID;
+	//string URI = "http://127.0.0.1";
+
+
+	//string url,game_id, key, player_id;
+	//cout << "url: ";
+	//cin >> url;
+	//cout << "game id: ";
+	//cin >> game_id;
+	//cout << "key: ";
+	//cin >> key;
+	//cout << "player id: ";
+	//cin >> player_id;
+
+	string input = "input.txt";
+	Setup(input);
 
 	sio::client h;
 	connection_listener cl(h);
@@ -198,7 +222,7 @@ MAIN_FUNC
 	h.set_open_listener(std::bind(&connection_listener::on_connected, &cl));
 	h.set_close_listener(std::bind(&connection_listener::on_close, &cl, std::placeholders::_1));
 	h.set_fail_listener(std::bind(&connection_listener::on_fail, &cl));
-	h.connect(URI);
+	h.connect(url);
 	_lock.lock();
 	if (!cl.connect_finish)
 	{
@@ -210,74 +234,74 @@ MAIN_FUNC
 	join_room(game_id, key);
 	bind_events();
 
-	char input;
+	//char input;
 
 	while (true)
 	{
-		input = _getch(); // Sử dụng hàm _getch() để đọc ký tự từ bàn phím
+	//	input = _getch(); // Sử dụng hàm _getch() để đọc ký tự từ bàn phím
 
-		if (input == 'q' || input == 'Q') {
-			std::cout << "Chương trình kết thúc." << std::endl;
-			break; // Thoát khỏi vòng lặp nếu nhấn 'Q'
-		}
+	//	if (input == 'q' || input == 'Q') {
+	//		std::cout << "Chương trình kết thúc." << std::endl;
+	//		break; // Thoát khỏi vòng lặp nếu nhấn 'Q'
+	//	}
 
-		if (input == 'p' || input == 'P') {
-			Game::getInstance()->getMapGame().print();
-		}
+	//	if (input == 'p' || input == 'P') {
+	//		Game::getInstance()->getMapGame().print();
+	//	}
 
 
-		// Xử lý ký tự được nhập
-		switch (input) {
-		case 'w':
-		case 'W':
-		{
-			std::string socket_event = "drive player";
-			sio::message::ptr object_message_drive_player = sio::object_message::create();
-			object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create("3")));
-			current_socket->emit(socket_event, object_message_drive_player);
-			break;
-		}
+	//	// Xử lý ký tự được nhập
+	//	switch (input) {
+	//	case 'w':
+	//	case 'W':
+	//	{
+	//		std::string socket_event = "drive player";
+	//		sio::message::ptr object_message_drive_player = sio::object_message::create();
+	//		object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create("3")));
+	//		current_socket->emit(socket_event, object_message_drive_player);
+	//		break;
+	//	}
 
-		case 'a':
-		case 'A':
-		{
-			std::string socket_event = "drive player";
-			sio::message::ptr object_message_drive_player = sio::object_message::create();
-			object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create("1")));
-			current_socket->emit(socket_event, object_message_drive_player);
+	//	case 'a':
+	//	case 'A':
+	//	{
+	//		std::string socket_event = "drive player";
+	//		sio::message::ptr object_message_drive_player = sio::object_message::create();
+	//		object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create("1")));
+	//		current_socket->emit(socket_event, object_message_drive_player);
 
-			break;
-		}
-		case 's':
-		case 'S':
-		{
-			std::string socket_event = "drive player";
-			sio::message::ptr object_message_drive_player = sio::object_message::create();
-			object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create("4")));
-			current_socket->emit(socket_event, object_message_drive_player);
-			break;
-		}
-		case 'd':
-		case 'D':
-		{
-			std::string socket_event = "drive player";
-			sio::message::ptr object_message_drive_player = sio::object_message::create();
-			object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create("2")));
-			current_socket->emit(socket_event, object_message_drive_player);
-			break;
-		}
-		case 'b':
-		case 'B':
-		{
-			std::string socket_event = "drive player";
-			sio::message::ptr object_message_drive_player = sio::object_message::create();
-			object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create("b")));
-			current_socket->emit(socket_event, object_message_drive_player);
-			break;
-		}
-		default:
-			std::cout << "Ký tự không hợp lệ." << std::endl;
-		}
+	//		break;
+	//	}
+	//	case 's':
+	//	case 'S':
+	//	{
+	//		std::string socket_event = "drive player";
+	//		sio::message::ptr object_message_drive_player = sio::object_message::create();
+	//		object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create("4")));
+	//		current_socket->emit(socket_event, object_message_drive_player);
+	//		break;
+	//	}
+	//	case 'd':
+	//	case 'D':
+	//	{
+	//		std::string socket_event = "drive player";
+	//		sio::message::ptr object_message_drive_player = sio::object_message::create();
+	//		object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create("2")));
+	//		current_socket->emit(socket_event, object_message_drive_player);
+	//		break;
+	//	}
+	//	case 'b':
+	//	case 'B':
+	//	{
+	//		std::string socket_event = "drive player";
+	//		sio::message::ptr object_message_drive_player = sio::object_message::create();
+	//		object_message_drive_player->get_map().insert(std::pair<std::string, sio::message::ptr>("direction", sio::string_message::create("b")));
+	//		current_socket->emit(socket_event, object_message_drive_player);
+	//		break;
+	//	}
+	//	default:
+	//		std::cout << "Ký tự không hợp lệ." << std::endl;
+	//	}
 	}
 
 	h.sync_close();
