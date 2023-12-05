@@ -13,7 +13,7 @@
 #define ENEMY_GST_EGG	7
 
 #define SPEED_EGG		8
-#define ATTACK_EGG		9
+#define POWER_EGG		9
 #define DELAY_EGG		10
 #define MYSTIC_EGG		11
 

@@ -12,9 +12,8 @@ class Game
 {
 private:
 	Map _mapGame;
-	Player _player, _enemy;
+	Player _player;
 	std::vector<Bomb> _bombs;
-	std::vector<Player> _players;
 
 	static Game *_gameInstance;
 	Game() {};
@@ -29,7 +28,9 @@ public:
 		return _gameInstance;
 	}
 
-	void updateMap(std::map<std::string, sio::message::ptr> map_info);
+	Player getPlayer() {
+		return _player;
+	}
 
 	Map getMapGame() {
 		return _mapGame;
@@ -38,9 +39,10 @@ public:
 	bool isCurrentlySafe() {
 		Position curr = _player.getPosition();
 		int currPosValue = _mapGame.getMap()[curr.getRow()][curr.getCol()];
-		return currPosValue == ROAD ||
-			currPosValue <= - 450 - BOMB_OFFSET;
+		return currPosValue == ROAD;
 	}
+
+	void updateMap(std::map<std::string, sio::message::ptr> map_info);
 
 	void updatePlayerPosition(std::map<std::string, sio::message::ptr> currentPosition) {
 		_player.updatePosotion(currentPosition["row"]->get_int(), currentPosition["col"]->get_int());
@@ -48,6 +50,9 @@ public:
 
 	void updatePlayerPosition(Position pos) {
 		_player.updatePosotion(pos.getRow(), pos.getCol());
+	}
+	void updatePlayerStats(int power, int speed, int delay) {
+		_player.updateStats(power, speed, delay);
 	}
 
 	void updateBombs(std::vector<Bomb> bombs)

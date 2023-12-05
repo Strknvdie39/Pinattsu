@@ -137,9 +137,10 @@ void bind_events()
 			
 			// move
 			/* Go to safe zone */
-			movePath = elBombGame->getPath(TEMPORARY_SAFE, false).first;
-			if (movePath == "no_temp_safe_zone") movePath = elBombGame->getPath(SAFE, false).first;
+			movePath = elBombGame->getPath(SAFE, false).first;
 			if (movePath != "") goto send;
+			//movePath = elBombGame->getPath(TEMPORARY_SAFE, false).first;
+			//if (movePath != "") goto send;
 
 			if (!elBombGame->isCurrentlySafe()) {
 				movePath = elBombGame->getPath(TP_GATE, false).first;
@@ -148,14 +149,21 @@ void bind_events()
 
 			/* Get power up */
 			movePath = elBombGame->getPath(POWER_UP, false).first;
+			//if (movePath == "")	goto end;
 			if (movePath != "") goto send;
 
 			/* Follow enemy */
-			if (isEnemyInPrison) goto end;
+			if (isEnemyInPrison) {
+				movePath = elBombGame->getPath(ENEMY_GST_EGG, true).first;
+				if (movePath != "") goto send;
+			}
+
+			movePath = elBombGame->getPath(ENEMY, true).first;
+			if (movePath == "")	goto end;
 			
-			path1 = elBombGame->getPath(ENEMY, false);
+			/*path1 = elBombGame->getPath(ENEMY, false);
 			path2 = elBombGame->getPath(ENEMY, true);
-			if (path2.second+2< path1.second) {
+			if (path2.second+300< path1.second) {
 				movePath = path2.first;
 				if (movePath == "wait") goto end;
 				if (movePath == "")	goto end;
@@ -163,10 +171,10 @@ void bind_events()
 			else {
 				movePath = path1.first;
 				if (movePath == "")	goto end;
-			}
+			}*/
 			
-			//movePath = elBombGame->getPath(TP_GATE, false);
-			//if (movePath == "") goto end;
+			/*movePath = elBombGame->getPath(TP_GATE, false).first;
+			if (movePath == "") goto end;*/
 
 
 			send:
@@ -199,16 +207,14 @@ MAIN_FUNC
 	//string game_id = GAME_ID;
 	//string URI = "http://127.0.0.1";
 
-
-	//string url,game_id, key, player_id;
-	//cout << "url: ";
-	//cin >> url;
-	//cout << "game id: ";
-	//cin >> game_id;
-	//cout << "key: ";
-	//cin >> key;
-	//cout << "player id: ";
-	//cin >> player_id;
+	/*cout << "url: ";
+	cin >> url;
+	cout << "game id: ";
+	cin >> game_id;
+	cout << "key: ";
+	cin >> key;
+	cout << "player id: ";
+	cin >> player_id;*/
 
 	string input = "input.txt";
 	Setup(input);
@@ -234,24 +240,24 @@ MAIN_FUNC
 	join_room(game_id, key);
 	bind_events();
 
-	//char input;
+	char input_key;
 
 	while (true)
 	{
-	//	input = _getch(); // Sử dụng hàm _getch() để đọc ký tự từ bàn phím
+	//	input_key = _getch(); // Sử dụng hàm _getch() để đọc ký tự từ bàn phím
 
-	//	if (input == 'q' || input == 'Q') {
+	//	if (input_key == 'q' || input_key == 'Q') {
 	//		std::cout << "Chương trình kết thúc." << std::endl;
 	//		break; // Thoát khỏi vòng lặp nếu nhấn 'Q'
 	//	}
 
-	//	if (input == 'p' || input == 'P') {
+	//	if (input_key == 'p' || input_key == 'P') {
 	//		Game::getInstance()->getMapGame().print();
 	//	}
 
 
 	//	// Xử lý ký tự được nhập
-	//	switch (input) {
+	//	switch (input_key) {
 	//	case 'w':
 	//	case 'W':
 	//	{
@@ -300,6 +306,7 @@ MAIN_FUNC
 	//		break;
 	//	}
 	//	default:
+	//		break;
 	//		std::cout << "Ký tự không hợp lệ." << std::endl;
 	//	}
 	}
